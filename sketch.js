@@ -1,13 +1,22 @@
 //crie as variaveis
-var GAME=1;
-var OVER=0;
-var gameState=GAME;
+var PLAY=1;
+var END=0;
+var gameState=PLAY;
+
 var ground,groundImg,groundInvisivel;
 var trex,trexCorrendo;
 var nuvemImg;
 var cac1,cac2,cac3,cac4,cac5,cac6;
-var pontos=0;
 
+
+var grupoCactos;
+var grupoNuvens;
+
+
+var gameOver,gameImg;
+var restart, restartImg
+
+var pontos=0;
 function preload(){
   //adicione a animação
  trexCorrendo=loadAnimation("trex1.png","trex3.png","trex4.png");
@@ -20,6 +29,8 @@ function preload(){
  cac4=loadImage("obstacle4.png");
  cac5=loadImage("obstacle5.png");
  cac6=loadImage("obstacle6.png");
+ gameImg=loadImage("gameOver.png")
+ restartImg=loadImage("restart.png");
 }
 
 function setup() {
@@ -27,8 +38,8 @@ function setup() {
   
   //criar sprite do ground
   ground=createSprite(305,180,600,10);
-  ground.x=ground.width/2;
   ground.addImage(groundImg);
+  ground.x=ground.width/2;
 
   groundInvisivel=createSprite(305,190,600,10);
   groundInvisivel.visible=false;
@@ -37,43 +48,87 @@ function setup() {
   trex=createSprite(200,150,30,30);
   trex.addAnimation("correndo",trexCorrendo);
   trex.scale=0.5;
+  trex.setCollider('circle',0,0,40);
+  trex.debug=true;
+
+  //sripte fim de jogo e restart
+
+  gameOver=createSprite(300,100,10,10);
+  gameOver.addImage(gameImg);
+  gameOver.scale=0.5;
+
+
+  
+  restart=createSprite(300,130,10,10);
+  restart.addImage(restartImg);
+  restart.scale=0.5;
+
+  //criar grupos de nuvens e cactos
+
+  grupoCactos = createGroup();
+  grupoNuvens= createGroup();
 }
 
 function draw() {
   background(180);
   //pontos na tela
   text("Pontuação:"+pontos,500,20);
-  pontos=pontos+Math.round(frameCount/60);
+ 
   //ESTADO DO JOGO
-  if( gameState===GAME){
+  if( gameState===PLAY){
+
+    gameOver.visible=false;
+    restart.visible=false;
+
+    pontos=pontos+Math.round(frameCount/60);
+
+    //retorno do solo
+    if(ground.x<0){
+      ground.x=ground.width/2;
+    }
+
     //adicione o controle de pulo
     if(keyDown("space")&& trex.y>=149){
       trex.velocityY=-10;
      }
+
     //adicione gravidade
     trex.velocityY=trex.velocityY+0.8;
     
     //velocidade do solo
     ground.velocityX=-2;
     
-      //retorno do solo
-    if(ground.x<0){
-      ground.x=ground.width/2;
-    }
+      
 
       //chamada de função
     GerarNuvens();
     gerarCactos()
     drawSprites();
 
-  } else if(gameState===OVER){
+    if(grupoCactos.isTouching(trex)){
+      gameState=END
+    }
+    
+  } 
+  else if(gameState===END){
+    gameOver.visible=true;
+    restart.visible=true;
     ground.velocityX=0;
+    ground.velocityX = 0;
+    trex.velocityY = 0
+     
+    //tempo de vida do grupo
+    grupoCactos.setLifetimeEach(-1);
+    grupoNuvens.setLifetimeEach(-1);
+
+    //velocidade do grupo
+    grupoCactos.setVelocityXEach(0);
+    grupoNuvens.setVelocityXEach(0)
   
   }
-   
 //adicione a colisão com o ground
 trex.collide(groundInvisivel);
-   
+drawSprites();
 }
 
 function GerarNuvens(){
@@ -86,13 +141,15 @@ function GerarNuvens(){
     nuvem.scale=0.4;
     nuvem.y=Math.round(random(10,100));
 
-  //profundidade
-  nuvem.depth=trex.depth;
-  trex.depth=trex.depth+1;
+    //profundidade
+    nuvem.depth=trex.depth;
+    trex.depth=trex.depth+1;
 
-  //tempo de vida
-  nuvem.lifetime=200;
-  
+    //tempo de vida
+    nuvem.lifetime=200;
+    
+    //adicionar a sprite nuvem no grupo
+    grupoNuvens.add(nuvem);
   }
  
 }
@@ -124,7 +181,11 @@ function gerarCactos(){
       default: break;                    
     }
 
+    //escala e tempo de vida
     cacto.scale=0.5;
     cacto.lifetime=200;
+
+    //adicionar a sprite cacto no grupo
+    grupoCactos.add(cacto);
   }
 }
