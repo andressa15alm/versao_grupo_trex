@@ -4,7 +4,7 @@ var END=0;
 var gameState=PLAY;
 
 var ground,groundImg,groundInvisivel;
-var trex,trexCorrendo;
+var trex,trexCorrendo,trexColidiu;
 var nuvemImg;
 var cac1,cac2,cac3,cac4,cac5,cac6;
 
@@ -14,12 +14,17 @@ var grupoNuvens;
 
 
 var gameOver,gameImg;
-var restart, restartImg
+var restart, restartImg;
 
+var sonPulo,sonMorte,sonPontos;
+
+var numero=10;
 var pontos=0;
 function preload(){
+
   //adicione a animação
  trexCorrendo=loadAnimation("trex1.png","trex3.png","trex4.png");
+ trexColidiu=loadImage("trex_collided.png");
  groundImg=loadImage("ground2.png");
  nuvemImg=loadImage("cloud.png");
 
@@ -31,10 +36,14 @@ function preload(){
  cac6=loadImage("obstacle6.png");
  gameImg=loadImage("gameOver.png")
  restartImg=loadImage("restart.png");
+ sonPulo=loadSound("jump.mp3");
+ sonPontos=loadSound("Point.mp3");
+ sonMorte=loadSound("die.mp3");
 }
 
 function setup() {
   createCanvas(600,200)
+ 
   
   //criar sprite do ground
   ground=createSprite(305,180,600,10);
@@ -47,8 +56,9 @@ function setup() {
   //criar a sprite do trex
   trex=createSprite(200,150,30,30);
   trex.addAnimation("correndo",trexCorrendo);
+  trex.addAnimation('colidiu',trexColidiu);
   trex.scale=0.5;
-  trex.setCollider('circle',0,0,40);
+  trex.setCollider('circle',0,0,50);
   trex.debug=true;
 
   //sripte fim de jogo e restart
@@ -75,38 +85,40 @@ function draw() {
   text("Pontuação:"+pontos,500,20);
  
   //ESTADO DO JOGO
-  if( gameState===PLAY){
+  if( gameState===PLAY){  
 
     gameOver.visible=false;
     restart.visible=false;
+      //velocidade do solo
+      ground.velocityX= -(4 +3* pontos/100);
 
     pontos=pontos+Math.round(frameCount/60);
 
+    if(pontos>0 && pontos%100===0){
+      sonPontos.play();
+    }
     //retorno do solo
     if(ground.x<0){
       ground.x=ground.width/2;
     }
 
     //adicione o controle de pulo
-    if(keyDown("space")&& trex.y>=149){
-      trex.velocityY=-10;
+    if(keyDown("space")&& trex.y>=150){
+      sonPulo.play(); 
+      trex.velocityY=-12;
      }
 
     //adicione gravidade
     trex.velocityY=trex.velocityY+0.8;
-    
-    //velocidade do solo
-    ground.velocityX=-2;
-    
-      
-
-      //chamada de função
+    //chamada de função
     GerarNuvens();
     gerarCactos()
-    drawSprites();
+    
 
     if(grupoCactos.isTouching(trex)){
       gameState=END
+      //trex.velocityY=-12
+      sonMorte.play();
     }
     
   } 
@@ -115,7 +127,8 @@ function draw() {
     restart.visible=true;
     ground.velocityX=0;
     ground.velocityX = 0;
-    trex.velocityY = 0
+    trex.velocityY = 0;
+    trex.changeAnimation('colidiu',trexColidiu);
      
     //tempo de vida do grupo
     grupoCactos.setLifetimeEach(-1);
@@ -127,8 +140,8 @@ function draw() {
   
   }
 //adicione a colisão com o ground
-trex.collide(groundInvisivel);
-drawSprites();
+  trex.collide(groundInvisivel);
+  drawSprites();
 }
 
 function GerarNuvens(){
@@ -156,10 +169,10 @@ function GerarNuvens(){
 
 
 function gerarCactos(){
-  if(frameCount %60===0){
+  if(frameCount %60===0){     
 
     var cacto=createSprite(600,165,10,10);
-    cacto.velocityX=-3;
+    cacto.velocityX= -( 3 + pontos/100);
 
     //switch
     //gerar cactos
